@@ -51,5 +51,6 @@ video.addEventListener('play',() => {
     },100)
 */
     detect_landmark_and_pose(video)
+    
 })
 
