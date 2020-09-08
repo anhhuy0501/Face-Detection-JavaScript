@@ -83,6 +83,9 @@ video.addEventListener('play',() => {
         draw_rectangle(canvas,oval);
         result = pose_est.detect_pose(video,canvas,displaySize,oval);
         result.then(text_pose => {
+            // Clear canvas
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
             // Write user action
             draw_text(canvas,"Detect status: "+ text_pose,{x:10,y:50});
             // Check condition 
