@@ -1,7 +1,7 @@
 //const opnecv = require("opencv.js");
 //cv = opnecv.cv
 //const pose_estimate = require('./pose_estimate')
-import detect_landmark_and_pose from "./pose_estimate.js"
+import pose_est from "./pose_estimate.js"
 const video = document.getElementById('video')
 
 Promise.all([
@@ -19,38 +19,31 @@ function startVideo(){
 }
 startVideo()
 
+const draw_rectangle = function(canvas,rec){
 
+
+    //Draw rectangle for testing
+    var ctx = canvas.getContext("2d");
+    ctx.beginPath();
+    ctx.rect(rec.x, rec.y, rec.w, rec.h);
+    ctx.stroke();
+}
 
 video.addEventListener('play',() => {
-/*
-    const canvas = faceapi.createCanvasFromMedia(video)
-    document.body.append(canvas)
-    const displaySize = { width: video.width, height: video.height}
-    faceapi.matchDimensions(canvas,displaySize)
-    setInterval(async () => {
-        const detections = await faceapi.detectAllFaces(video,
-            new faceapi.SsdMobilenetv1Options()).withFaceLandmarks()
-        console.log(detections)
-        const resizedDetections = faceapi.resizeResults(detections,displaySize)
-        canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height)
-        faceapi.draw.drawDetections(canvas,resizedDetections)
-        faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
-        
-
-        // Estimate face pose
-        const landmark={
-            nose : getMeanPosition(detections[0].landmarks.getNose()),
-            left_eye : getMeanPosition(detections[0].landmarks.getLeftEye()),
-            right_eye : getMeanPosition(detections[0].landmarks.getRightEye()),
-            chin : getMeanPosition([detections[0].landmarks.getJawOutline()[8]]),
-        }
-
-        pose_estimate(landmark,video.width,video.height)
-        // rotation vector (in degree 180)
-        //const rotation_vector = [-32.530263974401926, -40.41493964075018, -167.0025791654042]
-    },100)
-*/
-    detect_landmark_and_pose(video)
+    let canvas,displaySize;
+    [canvas,displaySize] = pose_est.init(video);
     
+    // Temporary set oval  for testing only
+    const oval = {
+        x : 344.4855028167367,
+        y : 143.15230764448643,
+        w : 166.22570246458054,
+        h : 182.8557866513729,
+    }
+
+    setInterval(function(){
+        pose_est.detect_pose(video,canvas,displaySize,oval);
+        draw_rectangle(canvas,oval);
+    },100);
 })
 

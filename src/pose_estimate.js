@@ -1,8 +1,9 @@
+/*
 //const KalmanFilter = require('kalmanjs')
 const kf1 = new KalmanFilter({R: 1, Q: 10});
 const kf2 = new KalmanFilter({R: 1, Q: 10});
 const kf3 = new KalmanFilter({R: 1, Q: 10});
-
+*/
 // Constance
 const STRAIGHT_POSE = [0, 0, 0]
 const LEFT_POSE = [-1, 0, 0]
@@ -18,62 +19,59 @@ const FACE_BOX_ABS_TOL = 10
 const MAX_LEFT_POSE = 16
 const MAX_RIGHT_POSE = 20
 
-
-// Find Landmark from video
-const detect_landmark_and_pose = function(video) {
+const init=function(video){
     const canvas = faceapi.createCanvasFromMedia(video)
     document.body.append(canvas)
     const displaySize = { width: video.width, height: video.height}
     faceapi.matchDimensions(canvas,displaySize)
 
-    setInterval(async () => {
-        const detections = await faceapi.detectAllFaces(video,
-            new faceapi.SsdMobilenetv1Options()).withFaceLandmarks()
-        console.log(detections)
-        const resizedDetections = faceapi.resizeResults(detections,displaySize)
-        canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height)
-        faceapi.draw.drawDetections(canvas,resizedDetections)
-        faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
-
-        
-        // Get face box:
-        const face_box = {
-            x : detections[0].alignedRect.box.x,
-            y : detections[0].alignedRect.box.y,
-            w : detections[0].alignedRect.box.width,
-            h : detections[0].alignedRect.box.height,
-        }
-
-        // Temporary set oval  for testing only
-        const oval = {
-            x : 344.4855028167367,
-            y : 143.15230764448643,
-            w : 166.22570246458054,
-            h : 182.8557866513729,
-        }
-        //Draw rectangle for testing
-        var ctx = canvas.getContext("2d");
-        ctx.beginPath();
-        ctx.rect(oval.x, oval.y, oval.w, oval.h);
-        ctx.stroke();
-
-        // Estimate face pose
-        const landmark={
-            nose : getMeanPosition(detections[0].landmarks.getNose()),
-            left_eye : getMeanPosition(detections[0].landmarks.getLeftEye()),
-            right_eye : getMeanPosition(detections[0].landmarks.getRightEye()),
-            chin : getMeanPosition([detections[0].landmarks.getJawOutline()[8]]),
-        };
-        // Get pose
-        //const pose = pose_estimate(landmark, video.width, video.height);
-        const pose = simple_pose_estimate(landmark,face_box)
-        // Get conclude
-        const result = get_conclude(pose, face_box, oval);
-        
-        console.log(result)
-
-    },100)
+    return [canvas,displaySize]
 }
+
+const detect_pose = async function(video,canvas,displaySize,oval){
+    const detections = await faceapi.detectAllFaces(video,
+        new faceapi.SsdMobilenetv1Options()).withFaceLandmarks()
+    console.log(detections)
+    const resizedDetections = faceapi.resizeResults(detections,displaySize)
+    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height)
+    faceapi.draw.drawDetections(canvas,resizedDetections)
+    faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
+
+    
+    // Get face box:
+    const face_box = {
+        x : detections[0].alignedRect.box.x,
+        y : detections[0].alignedRect.box.y,
+        w : detections[0].alignedRect.box.width,
+        h : detections[0].alignedRect.box.height,
+    }
+
+    // Estimate face pose
+    const landmark={
+        nose : getMeanPosition(detections[0].landmarks.getNose()),
+        left_eye : getMeanPosition(detections[0].landmarks.getLeftEye()),
+        right_eye : getMeanPosition(detections[0].landmarks.getRightEye()),
+        chin : getMeanPosition([detections[0].landmarks.getJawOutline()[8]]),
+    };
+    // Get pose
+    //const pose = pose_estimate(landmark, video.width, video.height);
+    const pose = simple_pose_estimate(landmark,face_box)
+    // Get conclude
+    const result = get_conclude(pose, face_box, oval);
+    
+    console.log(result)
+
+}
+
+// Find Landmark from video example
+/*
+const detect_landmark_and_pose = function(video) {
+    let canvas,displaySize
+    [canvas,displaySize] = init(video);
+
+    setInterval(function() {detect_pose(video,canvas,displaySize)},100);
+}
+*/
 
 const approxeq = function(v1, v2, abs_tol,rel_tol) {
     if (abs_tol !== null) {
@@ -120,6 +118,8 @@ const get_conclude = function(pose, face_box, oval=null) {
     let conclusion;
     if (oval && is_straight_and_in_oval(pose, face_box, oval))
         conclusion = "straight_and_in_oval";
+    else if (oval && is_rect_fix_oval(face_box,oval))
+        conclusion = "in_oval";
     else if (is_straight_face(pose))
         conclusion = "straight";
     else if (is_turn_left_face(pose))
@@ -142,7 +142,7 @@ function getMeanPosition(ls) {
         y: ls[1],
     }
 }
-
+/*
 function yawpitchrolldecomposition(R){
     sin_x    = Math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
     validity  = sin_x < 1e-6
@@ -158,7 +158,7 @@ function yawpitchrolldecomposition(R){
     }
     return [z1, x, z2]
 }
-
+*/
 const simple_pose_estimate = function (landmark,face_box) {
     //Get middle point
     const middle = face_box.x + face_box.w/2;
@@ -171,7 +171,7 @@ const simple_pose_estimate = function (landmark,face_box) {
     return [yaw,pitch,roll];
 }
 
-
+/*
 // Estimate pose from landmark
 const pose_estimate = function (landmark,width=720,height=405) {
     // 3D model points
@@ -312,10 +312,11 @@ const pose_estimate = function (landmark,width=720,height=405) {
     console.log([yaw,pitch,roll]);
     return [yaw,pitch,roll] ;
 }
-/*
-const ps = {
-    detect_landmark_and_pose,
-    get_conclude
-}
 */
-export default detect_landmark_and_pose
+
+const pose_est = {
+    init,
+    detect_pose,
+}
+
+export default pose_est
