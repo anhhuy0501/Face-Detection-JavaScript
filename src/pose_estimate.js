@@ -5,17 +5,19 @@ const kf3 = new KalmanFilter({R: 1, Q: 10});
 
 // Constance
 const STRAIGHT_POSE = [0, 0, 0]
-const LEFT_POSE = [1, 0, 0]
-const RIGHT_POSE = [-1, 0, 0]
-const POSE_ABS_TOL = 0.1
-const POSE_TURN_ABS_TOL = 0.4
-const REL_TOL = 0.1
+const LEFT_POSE = [-1, 0, 0]
+const RIGHT_POSE = [1, 0, 0]
+const POSE_STRAIGHT_ABS_TOL = 0.12
+const POSE_TURN_ABS_TOL = 0.2
+const REL_TOL = 0.05
 const OVAL_LTRB = [250, 90, 380, 220]
 const POSE_STABLE_TOL = 0.3
+const FACE_BOX_ABS_TOL = 10
 
 // Calib
 const MAX_LEFT_POSE = 16
 const MAX_RIGHT_POSE = 20
+
 
 // Find Landmark from video
 const detect_landmark_and_pose = function(video) {
@@ -24,10 +26,6 @@ const detect_landmark_and_pose = function(video) {
     const displaySize = { width: video.width, height: video.height}
     faceapi.matchDimensions(canvas,displaySize)
 
-
-    //Draw rectangle for testing
-
-    canvas.getContext('2d').
     setInterval(async () => {
         const detections = await faceapi.detectAllFaces(video,
             new faceapi.SsdMobilenetv1Options()).withFaceLandmarks()
@@ -42,12 +40,22 @@ const detect_landmark_and_pose = function(video) {
         const face_box = {
             x : detections[0].alignedRect.box.x,
             y : detections[0].alignedRect.box.y,
-            h : detections[0].alignedRect.box.height,
             w : detections[0].alignedRect.box.width,
+            h : detections[0].alignedRect.box.height,
         }
 
-        // Temporary set oval = face_bax for testing only
-        const oval = face_box
+        // Temporary set oval  for testing only
+        const oval = {
+            x : 344.4855028167367,
+            y : 143.15230764448643,
+            w : 166.22570246458054,
+            h : 182.8557866513729,
+        }
+        //Draw rectangle for testing
+        var ctx = canvas.getContext("2d");
+        ctx.beginPath();
+        ctx.rect(oval.x, oval.y, oval.w, oval.h);
+        ctx.stroke();
 
         // Estimate face pose
         const landmark={
@@ -57,7 +65,8 @@ const detect_landmark_and_pose = function(video) {
             chin : getMeanPosition([detections[0].landmarks.getJawOutline()[8]]),
         };
         // Get pose
-        const pose = pose_estimate(landmark, video.width, video.height);
+        //const pose = pose_estimate(landmark, video.width, video.height);
+        const pose = simple_pose_estimate(landmark,face_box)
         // Get conclude
         const result = get_conclude(pose, face_box, oval);
         
@@ -80,14 +89,22 @@ const approxeq = function(v1, v2, abs_tol,rel_tol) {
 
 
 function is_straight_face(pose){
-    return approxeq(pose[0], STRAIGHT_POSE[0],POSE_ABS_TOL) 
+    return approxeq(pose[0], STRAIGHT_POSE[0],POSE_STRAIGHT_ABS_TOL) 
+}
+
+function is_turn_left_face(pose){
+    return approxeq(pose[0], LEFT_POSE[0],POSE_TURN_ABS_TOL)
+}
+
+function is_turn_right_face(pose){
+    return approxeq(pose[0], RIGHT_POSE[0],POSE_TURN_ABS_TOL)
 }
 
 function is_rect_fix_oval(rec, oval){
     return  (   
-        approxeq(rec.x, oval.x, null, REL_TOL) 
-        && approxeq(rec.y, oval.y, null, REL_TOL) 
-        && approxeq(rec.w, oval.w, null, REL_TOL)
+           approxeq(rec.x+rec.w/2, oval.x+oval.w/2, FACE_BOX_ABS_TOL) 
+        && approxeq(rec.y+rec.h/2, oval.y+oval.h/2, FACE_BOX_ABS_TOL) 
+        && approxeq(rec.w, oval.w, FACE_BOX_ABS_TOL)
         //&& approxeq(rec.w, oval.w, null, REL_TOL)
     );
 }
@@ -105,12 +122,10 @@ const get_conclude = function(pose, face_box, oval=null) {
         conclusion = "straight_and_in_oval";
     else if (is_straight_face(pose))
         conclusion = "straight";
-    /*
-        elif is_turn_left_face(pose):
+    else if (is_turn_left_face(pose))
         conclusion = "turn_left"
-    elif is_turn_right_face(pose):
+    else if (is_turn_right_face(pose))
         conclusion = "turn_right"
-        */
     else
         conclusion = "unknown";
     return conclusion
@@ -127,6 +142,35 @@ function getMeanPosition(ls) {
         y: ls[1],
     }
 }
+
+function yawpitchrolldecomposition(R){
+    sin_x    = Math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
+    validity  = sin_x < 1e-6
+    if (!validity ){
+        z1    = Math.atan2(R[2,0], R[2,1])     // around z1-axis
+        x      = Math.atan2(sin_x,  R[2,2])    // around x-axis
+        z2    = Math.atan2(R[0,2], -R[1,2])    // around z2-axis
+    }
+    else{
+        z1    = 0                               // around z1-axis
+        x      = math.atan2(sin_x,  R[2,2])     // around x-axis
+        z2    = 0                               // around z2-axis
+    }
+    return [z1, x, z2]
+}
+
+const simple_pose_estimate = function (landmark,face_box) {
+    //Get middle point
+    const middle = face_box.x + face_box.w/2;
+    // Calib
+    const calib = 2;
+    const yaw = (landmark.nose.x - middle)/(face_box.w/2)*calib;
+    const pitch = 0;
+    const roll = 0;
+    console.log([yaw,pitch,roll])
+    return [yaw,pitch,roll];
+}
+
 
 // Estimate pose from landmark
 const pose_estimate = function (landmark,width=720,height=405) {
@@ -250,10 +294,17 @@ const pose_estimate = function (landmark,width=720,height=405) {
     let yaw,pitch,roll
     [yaw,pitch,roll] = rvec.data64F.map(d => (d / Math.PI) * 180);
     
+    // Corrected method but not have Rodrigues in js yet.
+    //rmat = cv.Rodrigues(rvec)[0]
+    //yawpitchroll_angles = yawpitchrolldecomposition(rmat).map(d => -180*d/Math.PI);
+    //yawpitchroll_angles[1,0] = yawpitchroll_angles[1,0]+90;
+    //[yaw,pitch,roll] = yawpitchroll_angles;
+    
+
     if (yaw >= 0){
-        yaw = Math.max(0,180 - yaw)/MAX_RIGHT_POSE;
+        yaw = Math.max(0,180 - yaw )/MAX_RIGHT_POSE;
     }else{
-        yaw = Math.min(0,-180 -yaw)/MAX_LEFT_POSE;
+        yaw = Math.min(0,-180 -yaw) /MAX_LEFT_POSE;
     }
     yaw = kf1.filter(yaw)
     pitch = kf2.filter(pitch)
