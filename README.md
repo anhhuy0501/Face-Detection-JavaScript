@@ -1,9 +1,59 @@
-# IMPORTANT: Bug Fixes
+# API notes
+## Require files
+- `lib/face-api.min.js`
+- Related moodels in `models/*`
+- `src/face_status.js`
 
-## `navigator.getUserMedia`
+## Using example
+### Import files js in `index.html`
+```
+  <script defer src="lib/face-api.min.js"></script>
+  <script defer type="module" src="src/script.js"></script>
+```
+### Run script in in `src/script.js`
+### Load models
+```
+Promise.all([
+    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+    faceapi.nets.faceExpressionNet.loadFromUri('/models'),
+]).then(startVideo)
+```
+### Start video
+```
+function startVideo(){
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => video.srcObject = stream)
+    .then(() => new Promise(resolve => video.onloadedmetadata = resolve))
+  
+}
+```
+### Run face status recognize
+```
+video.addEventListener('play',() => {
+    let canvas,displaySize;
+    [canvas,displaySize] = face_status.init(video);
+    const oval = {
+        x : 300,
+        y : 100,
+        w : 180,
+        h : 200,
+    }
+    result = face_status.detect_face_status(video,canvas,displaySize,oval);
+}
+```
 
-`navigator.getUserMedia` is now deprecated and is replaced by `navigator.mediaDevices.getUserMedia`. To fix this bug replace all versions of `navigator.getUserMedia` with `navigator.mediaDevices.getUserMedia`
+## Return `result`
+`result` is a string in following format:
+```
+face_status1,face_status2,face_status3
+```
+Example
+```
+happy,turn_left,in_oval
+```
 
-## Low-end Devices Bug
 
-The video eventListener for `play` fires up too early on low-end machines, before the video is fully loaded, which causes errors to pop up from the Face API and terminates the script (tested on Debian [Firefox] and Windows [Chrome, Firefox]). Replaced by `playing` event, which fires up when the media has enough data to start playing.
+
+

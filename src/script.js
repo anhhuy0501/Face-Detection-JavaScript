@@ -1,7 +1,4 @@
-//const opnecv = require("opencv.js");
-//cv = opnecv.cv
-//const pose_estimate = require('./pose_estimate')
-import pose_est from "./pose_estimate.js"
+import face_status from "./face_status.js"
 const video = document.getElementById('video')
 
 Promise.all([
@@ -17,7 +14,6 @@ function startVideo(){
     .then(() => new Promise(resolve => video.onloadedmetadata = resolve))
   
 }
-startVideo()
 
 const draw_rectangle = function(canvas,rec){
     //Draw rectangle for testing
@@ -51,7 +47,7 @@ function getRequest(request_actions,current_request) {
 
 video.addEventListener('play',() => {
     let canvas,displaySize;
-    [canvas,displaySize] = pose_est.init(video);
+    [canvas,displaySize] = face_status.init(video);
     
     // Temporary set oval  for testing only
     const oval = {
@@ -72,7 +68,7 @@ video.addEventListener('play',() => {
 
     setInterval(function(){
         draw_rectangle(canvas,oval);
-        result = pose_est.detect_pose(video,canvas,displaySize,oval);
+        result = face_status.detect_face_status(video,canvas,displaySize,oval);
         result.then(text_pose => {
             // Clear canvas
             const context = canvas.getContext('2d');
@@ -97,7 +93,7 @@ video.addEventListener('play',() => {
                 current_request = request_actions[0];
             }
         });
-    },100);
+    },250);
 
 
 

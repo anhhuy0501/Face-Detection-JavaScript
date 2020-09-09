@@ -1,4 +1,3 @@
-
 // Constance
 const STRAIGHT_POSE = [0, 0, 0]
 const LEFT_POSE = [-1, 0, 0]
@@ -25,7 +24,7 @@ const detect_expression = function(resizedDetections){
     return [highest_expression,highest_score];
 }
 
-const detect_pose = async function(video,canvas,displaySize,oval){
+const detect_face_status = async function(video,canvas,displaySize,oval){
     let result
     const detections = await faceapi.detectAllFaces(video,
         new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceExpressions();
@@ -35,8 +34,9 @@ const detect_pose = async function(video,canvas,displaySize,oval){
     //faceapi.draw.drawDetections(canvas,resizedDetections)
     //faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
     if (resizedDetections.length == 0){
-        result = "no_face"
-        return result
+        result = "no_face";
+        console.log(result);
+        return result;
     }
         
     // Get face box:
@@ -56,7 +56,6 @@ const detect_pose = async function(video,canvas,displaySize,oval){
         chin : getMeanPosition([resizedDetections[0].landmarks.getJawOutline()[8]]),
     };
     // Get pose
-    //const pose = pose_estimate(landmark, video.width, video.height);
     const pose = simple_pose_estimate(landmark,face_box)
 
     // Get conclude
@@ -163,9 +162,9 @@ const simple_pose_estimate = function (landmark,face_box) {
     return [yaw,pitch,roll];
 }
 
-const pose_est = {
+const face_status = {
     init,
-    detect_pose,
+    detect_face_status,
 }
 
-export default pose_est
+export default face_status
