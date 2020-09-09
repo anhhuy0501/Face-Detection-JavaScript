@@ -1,23 +1,11 @@
-/*
-//const KalmanFilter = require('kalmanjs')
-const kf1 = new KalmanFilter({R: 1, Q: 10});
-const kf2 = new KalmanFilter({R: 1, Q: 10});
-const kf3 = new KalmanFilter({R: 1, Q: 10});
-*/
+
 // Constance
 const STRAIGHT_POSE = [0, 0, 0]
 const LEFT_POSE = [-1, 0, 0]
 const RIGHT_POSE = [1, 0, 0]
 const POSE_STRAIGHT_ABS_TOL = 0.2
 const POSE_TURN_ABS_TOL = 0.1
-const REL_TOL = 0.05
-const OVAL_LTRB = [250, 90, 380, 220]
-const POSE_STABLE_TOL = 0.3
 const FACE_BOX_ABS_TOL = 20
-
-// Calib
-const MAX_LEFT_POSE = 16
-const MAX_RIGHT_POSE = 20
 
 const init=function(video){
     const canvas = faceapi.createCanvasFromMedia(video)
@@ -38,6 +26,7 @@ const detect_expression = function(resizedDetections){
 }
 
 const detect_pose = async function(video,canvas,displaySize,oval){
+    let result
     const detections = await faceapi.detectAllFaces(video,
         new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceExpressions();
     //console.log(detections)
@@ -45,8 +34,11 @@ const detect_pose = async function(video,canvas,displaySize,oval){
     canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
     //faceapi.draw.drawDetections(canvas,resizedDetections)
     //faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
-    
-    
+    if (resizedDetections.length == 0){
+        result = "noface"
+        return result
+    }
+        
     // Get face box:
     const face_box = {
         x : resizedDetections[0].detection.box.x,
@@ -68,12 +60,12 @@ const detect_pose = async function(video,canvas,displaySize,oval){
     const pose = simple_pose_estimate(landmark,face_box)
 
     // Get conclude
-    let result = get_conclude(pose, face_box, oval);
+    result = get_conclude(pose, face_box, oval);
 
     //Get expression
     let highest_expression,highest_score;
     [highest_expression,highest_score] = detect_expression(resizedDetections);
-    result = highest_expression + "_" + result;
+    result = highest_expression + "," + result;
 
     console.log(result)
     return result
@@ -137,7 +129,7 @@ const get_conclude = function(pose, face_box, oval=null) {
         pose_text = "turn_right"
     
     if (pose_text && posi_text)
-        conclusion = pose_text + "_"  + posi_text;
+        conclusion = pose_text + ","  + posi_text;
     else if (pose_text)
         conclusion = pose_text;
     else 
@@ -162,7 +154,7 @@ function getMeanPosition(ls) {
 const simple_pose_estimate = function (landmark,face_box) {
     //Get middle point
     const middle = face_box.x + face_box.w/2;
-    // Calib
+    // Calib (middle point of nose only move haft way from center to left/right bbox border)
     const calib = 2;
     const yaw = (landmark.nose.x - middle)/(face_box.w/2)*calib;
     const pitch = 0;
@@ -170,7 +162,6 @@ const simple_pose_estimate = function (landmark,face_box) {
     console.log([yaw,pitch,roll])
     return [yaw,pitch,roll];
 }
-
 
 const pose_est = {
     init,

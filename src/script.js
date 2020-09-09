@@ -15,15 +15,7 @@ function startVideo(){
     navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => video.srcObject = stream)
     .then(() => new Promise(resolve => video.onloadedmetadata = resolve))
-
-    
-    /*
-    navigator.getUserMedia(
-        {video:{}},
-        stream => video.srcObject = stream,
-        err => console.error(err)
-    )
-    */
+  
 }
 startVideo()
 
@@ -40,7 +32,6 @@ const draw_text = function(canvas,text,pos){
     var ctx = canvas.getContext("2d");
     ctx.font = "30px Arial";
     ctx.fillText(text, pos.x, pos.y);
-    
 }
 
 function getRandomInt(min, max) {
@@ -105,8 +96,6 @@ video.addEventListener('play',() => {
                 draw_text(canvas,"PASS!",{x:10,y:300});
                 current_request = request_actions[0];
             }
-
-
         });
     },100);
 
