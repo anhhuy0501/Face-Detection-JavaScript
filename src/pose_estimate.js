@@ -35,7 +35,7 @@ const detect_pose = async function(video,canvas,displaySize,oval){
     //faceapi.draw.drawDetections(canvas,resizedDetections)
     //faceapi.draw.drawFaceLandmarks(canvas,resizedDetections)
     if (resizedDetections.length == 0){
-        result = "noface"
+        result = "no_face"
         return result
     }
         
